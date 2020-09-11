@@ -87,6 +87,8 @@ MIDDLEWARE = [
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
 ]
 
+CORS_ORIGIN_ALLOW_ALL = True
+
 TWO_FACTOR_PATCH_ADMIN = True
 TWO_FACTOR_CALL_GATEWAY = None
 
@@ -156,3 +158,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 DEBUG_PROPAGATE_EXCEPTIONS = True
 
 MEDIA_URL = '/media/'
+
+OAUTH2_PROVIDER = {
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['app.mtp.desktop']
+}
