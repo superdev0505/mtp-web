@@ -83,6 +83,7 @@ class Sequence(models.Model):
     geometry_coordinates = models.LineStringField(null=True)
     geometry_coordinates_ary = ArrayField(ArrayField(models.FloatField(default=1)), null=True)
     coordinates_cas = ArrayField(models.FloatField(default=0), null=True)
+    coordinates_ele = ArrayField(models.FloatField(default=0), null=True)
     coordinates_image = ArrayField(models.CharField(default='', max_length=100), null=True)
     is_uploaded = models.BooleanField(default=False)
     is_privated = models.BooleanField(default=False)
@@ -205,6 +206,8 @@ class Image(models.Model):
     is_mapillary = models.BooleanField(default=True)
     lat = models.FloatField(default=0)
     lng = models.FloatField(default=0)
+    ele = models.FloatField(default=0)
+    point = models.PointField(null=True, blank=True)
     type = models.CharField(max_length=50, default='Point')
 
     def getSequence(self):

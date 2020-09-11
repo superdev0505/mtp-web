@@ -504,8 +504,12 @@ def import_sequence_list(request):
     }
     return render(request, 'sequence/import_list.html', content)
 
-@my_login_required
 def ajax_import(request, seq_key):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'status': 'failed',
+            'message': "You can't change the status."
+        })
     if request.method == 'POST':
 
         # form = AddSequeceForm(request.POST)
@@ -602,6 +606,30 @@ def ajax_import(request, seq_key):
     return JsonResponse({
         'status': 'failed',
         'message': 'Sequence was not imported.'
+    })
+
+def ajax_add_ele(request, unique_id):
+    sequence = Sequence.objects.get(unique_id=unique_id)
+    if not sequence:
+        return JsonResponse({
+            'status': 'failed',
+            'message': 'The sequence does not exist.'
+        })
+
+    eles = request.POST.get('eles')
+    if eles is None:
+        return JsonResponse({
+            'status': 'failed',
+            'message': 'The ele is empty.'
+        })
+
+    eles_ary = eles.split(',')
+    sequence.coordinates_ele = eles_ary
+
+    sequence.save()
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Ele is saved.'
     })
 
 def ajax_sequence_check_publish(request, unique_id):
@@ -706,6 +734,21 @@ def ajax_get_image_detail(request, unique_id, image_key):
     images = Image.objects.filter(seq_key=sequence.seq_key, image_key=image_key)
     if images.count() > 0:
         image = images[0]
+        if image.ele == 0:
+            try:
+                url = 'https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/{},{}.json?layers=contour&limit=50&access_token={}'.format(
+                    image.lng, image.lat, settings.MAPBOX_PUBLISH_TOKEN)
+                response = requests.get(url)
+                ele_data = response.json()
+                allFeatures = ele_data['features']
+                elevations = []
+                for feature in allFeatures:
+                    elevations.append(feature['properties']['ele'])
+                highestElevation = max(elevations)
+                image.ele = highestElevation
+                image.save()
+            except:
+                pass
     else:
         image = Image()
 
@@ -745,13 +788,24 @@ def ajax_get_image_detail(request, unique_id, image_key):
 
         image.lng = data['geometry']['coordinates'][0]
         image.lat = data['geometry']['coordinates'][1]
-
+        try:
+            url = 'https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/{},{}.json?layers=contour&limit=50&access_token={}'.format(image.lng, image.lat, settings.MAPBOX_PUBLISH_TOKEN)
+            response = requests.get(url)
+            ele_data = response.json()
+            allFeatures = ele_data['features']
+            elevations = []
+            for feature in allFeatures:
+                elevations.append(feature['properties']['ele'])
+            highestElevation = max(elevations)
+            print(highestElevation)
+            image.ele = highestElevation
+        except:
+            pass
 
         image.is_uploaded = True
         image.is_mapillary = True
 
         image.user = sequence.user
-        print('test')
         image.save()
 
     view_points = ImageViewPoint.objects.filter(image=image)
@@ -773,6 +827,41 @@ def ajax_get_image_detail(request, unique_id, image_key):
         'view_points': view_points.count()
     })
 
+def ajax_add_ele_in_image(request, unique_id, image_key):
+    sequence = Sequence.objects.get(unique_id=unique_id)
+    if not sequence:
+        return JsonResponse({
+            'status': 'failed',
+            'message': 'The Sequence does not exist.'
+        })
+
+    if not sequence.is_published:
+        if not request.user.is_authenticated or request.user != sequence.user:
+            return JsonResponse({
+                'status': 'failed',
+                'message': "You can't access this sequence."
+            })
+    images = Image.objects.filter(image_key=image_key)
+    if images.count() == 0:
+        return JsonResponse({
+            'status': 'failed',
+            'message': 'The Sequence does not exist.'
+        })
+    image = images[0]
+
+    ele = request.POST.get('ele')
+    if ele is None:
+        return JsonResponse({
+            'status': 'failed',
+            'message': 'ele is empty'
+        })
+    image.ele = ele
+    image.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'message': "success",
+    })
 def ajax_get_image_list(request, unique_id):
     sequence = Sequence.objects.get(unique_id=unique_id)
     if not sequence:

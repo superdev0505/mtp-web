@@ -65,7 +65,7 @@
         {% include 'components/copyrite.html' %}
     </div>
     <div class="right-board bg-light">
-        <div class="main-list-board mt-4 mb-2 ml-auto mr-auto">
+        <div class=" mt-4 mb-2 ml-auto mr-auto">
             <div class="paginator">
                 {% if sequences.has_other_pages %}
                     <ul class="pagination justify-content-center">
@@ -106,8 +106,8 @@
                                     <img class="w-100" src="https://images.mapillary.com/{{ sequence.getCoverImage }}/thumb-320.jpg">
                                 {% endif %}
                             </div>
-                            <div class="item-detail-box pl-3 pr-3">
-                                <div class="item-main w-100 float-left">
+                            <div class="item-detail-box d-flex flex-row pl-3 pr-3">
+                                <div class="item-main " style="width: calc(100% - 200px)">
                                     <div class="item-title text-info d-flex flex-row justify-content-between">
                                         <a href="{% url 'sequence.sequence_detail' unique_id=sequence.unique_id %}">
                                             <h6>{{ sequence.name }}</h6>
@@ -156,6 +156,9 @@
                                         </a>
                                     </div>
 
+                                </div>
+                                <div class="item-chart">
+                                    <canvas id="chart-{{ sequence.unique_id }}" width="200" height="120"></canvas>
                                 </div>
                             </div>
                             <div class="text-center" style="width: 180px; font-size: 13px;">
@@ -213,7 +216,7 @@
 {% endblock %}
 
 {% block scripts %}
-    {% if pageName == 'my-sequence-list' %}active{% endif %}
+<script src="{% static 'js/chart.min.js' %}"></script>
 <script>
     $('.paginator-btn').click(function() {
         var pageNum = $(this).data('page');
@@ -228,8 +231,16 @@
 
     mapboxgl.accessToken = mapboxToken;
     var positions = [];
+    var ele_list = [];
+    var sequence_list = [];
     {% for sequence in sequences %}
+        sequence_list.push("{{ sequence.unique_id }}");
         positions.push({{ sequence.geometry_coordinates_ary }});
+        {% if sequence.coordinates_ele is None %}
+            ele_list.push(null);
+        {% else %}
+            ele_list.push({{ sequence.coordinates_ele }});
+        {% endif %}
     {% endfor %}
 
     console.log(positions);
@@ -299,9 +310,59 @@
         });
     }
 
-    for (i = 0; i < positions.length; i++)
+    for (var i = 0; i < positions.length; i++)
     {
         draw_map(positions[i])
+    }
+
+    var num_list = [];
+    var jj_list = [];
+    for (i = 0; i < sequence_list.length; i++) {
+        var a = [];
+        num_list.push(a);
+        jj_list.push(0);
+    }
+    var ele_ary = [];
+    for (var i = 0; i < sequence_list.length; i++) {
+        drawChartSeq(i)
+    }
+
+    function drawChartSeq(ii) {
+        var num_ary = []
+        for (var k = 0; k < positions[i].length; k++)
+        {
+            num_ary.push(k + 1)
+        }
+        num_list[ii] = num_ary;
+        drawChart(ii);
+    }
+
+    function drawChart(iii) {
+        var unique_id = sequence_list[iii];
+        console.log(unique_id)
+        var myLineChart = new Chart(document.getElementById("chart-" + unique_id), {
+            type: 'line',
+            data: {
+                labels: num_list[iii],
+                datasets: [{
+                    data: ele_list[iii],
+                    borderColor: "#3e95cd",
+                    fill: false
+                }]
+            },
+            options: {
+                'borderColor': 'red',
+                'legend': { 'display': false },
+                'onClick': function(evt) {
+                  var element = myLineChart.getElementAtEvent(evt);
+                  if(element.length > 0)
+                  {
+                    var ind = element[0]._index;
+
+                  }
+                }
+            }
+        });
     }
 
 </script>

@@ -71,6 +71,10 @@
                         {% endfor %}
                     </div>
 
+                    <div class="sequence-image-key d-none" id="sequence_images">
+                        <p class="mb-1">{{ sequence.coordinates_image }}</p>
+                    </div>
+
                     <div class="guidebook-created-at d-flex flex-row align-items-center justify-content-between mt-2">
                         <div class="text-secondary">
                             <p >
@@ -313,10 +317,11 @@
     var positions = [];
     var image_keys = [];
     positions.push({{ sequence.geometry_coordinates_ary }});
-    {% for image in sequence.coordinates_image %}
-        image_keys.push("{{ image }}")
-    {% endfor %}
-
+{#    {% for image in sequence.coordinates_image %}#}
+{#        image_keys.push("{{ image }}")#}
+{#    {% endfor %}#}
+    image_keys = $('#sequence_images').text().replace('[','').replace(']', '').split(',');
+    console.log('image', image_keys)
     var sceneData = [];
     var item = {};
     var scene_positions = [];
@@ -463,8 +468,6 @@
             console.log(highestElevation)
         });
     }
-
-
 
     $('.switch_screen').click(function () {
          var full_screen = $('.full-screen');
@@ -689,6 +692,7 @@
                     $('.image-detail-box').removeClass('d-none');
                     $('#image_detail_box').html(data.image_detail_box_html);
                     $('.right-board .image-view-point span').text(data.view_points + ' View Points');
+
                 }
             }
         });
@@ -776,25 +780,51 @@
     }
 
 
-    var ele_ary = []
-    console.log(positions[0].length)
+    var ele_ary = [];
+    {% if not sequence.coordinates_ele is None %}
+        ele_ary = {{ sequence.coordinates_ele }};
+    {% endif %}
     function getEleByAsyncFalse(lng, lat) {
 
     }
     var num_ary = []
-    for (j = 0; j < positions[0].length; j++) {
-        num_ary.push(j + 1);
-        ele_ary.push(0)
-    }
+
     var jj = 0;
+
+    function drawChart() {
+        console.log(num_ary)
+        console.log(ele_ary)
+        var myLineChart = new Chart(document.getElementById("myChart"), {
+            type: 'line',
+            data: {
+                labels: num_ary,
+                datasets: [{
+                    data: ele_ary,
+                    borderColor: "#3e95cd",
+                    fill: false
+                }]
+            },
+            options: {
+                'borderColor': 'red',
+                'legend': { 'display': false },
+                'onClick': function(evt) {
+                  var element = myLineChart.getElementAtEvent(evt);
+                  if(element.length > 0)
+                  {
+                    var ind = element[0]._index;
+
+                  }
+                }
+            }
+        });
+    }
+
     function getELE(j) {
         var query = 'https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/' + positions[0][j][0] + ',' + positions[0][j][1] + '.json?layers=contour&limit=50&access_token=' + mapboxgl.accessToken;
         $.ajax({
             method: 'GET',
             url: query,
         }).done(function(data) {
-            console.log(data)
-            console.log(j)
             // Get all the returned features
             var allFeatures = data.features;
             // Create an empty array to add elevation data to
@@ -807,33 +837,36 @@
             var highestElevation = Math.max(...elevations);
             ele_ary[j] = highestElevation
             jj++;
-            if (jj + 1 == positions[0].length) {
-                console.log(ele_ary)
-                var myLineChart = new Chart(document.getElementById("myChart"), {
-                    type: 'line',
-                    data: {
-                        labels: num_ary,
-                        datasets: [{
-                            data: ele_ary,
-                            borderWidth: 1,
-                            borderColor: "#3e95cd",
-                            fill: false
-                        }]
-                    },
-                    options: {
-                        'borderColor': 'red',
-                        'borderWidth': 1,
-                        'legend': { 'display': false }
+            if (jj == positions[0].length) {
+                drawChart();
+                $.ajax({
+                    url: "{% url 'sequence.ajax_add_ele' unique_id=sequence.unique_id %}",
+                    type: 'POST',
+                    data: {'eles': ele_ary.toString()},
+                    dataType: 'json',
+                    success: function (data) {
+
                     }
-                });
+                })
             }
         });
     }
     for (j = 0; j < positions[0].length; j++) {
-
-        getELE(j)
+        num_ary.push(j + 1);
+    }
+    if (ele_ary.length == 0) {
+        for (j = 0; j < positions[0].length; j++) {
+            ele_ary.push(0)
+        }
+        for (j = 0; j < positions[0].length; j++) {
+            getELE(j)
+        }
 
     }
+    else {
+        drawChart();
+    }
+
 
 </script>
 {% endblock %}
