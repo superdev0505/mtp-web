@@ -31,7 +31,9 @@ from lib.functions import *
 from accounts.models import CustomUser, MapillaryUser
 from tour.models import Tour, TourSequence
 from guidebook.models import Guidebook, Scene
-
+import requests
+import tempfile
+from django.core import files
 ## App packages
 
 # That includes from .models import *
@@ -46,6 +48,47 @@ IMPORT_PAGE_DESCRIPTION = "First start by choosing the month your sequences we'r
 
 def index(request):
     return redirect('sequence.sequence_list')
+
+def testImageDownload(request):
+    image_key = request.GET.get('image_key')
+    image = Image.objects.filter(image_key=image_key)[:1]
+    if image.count() == 0:
+        return HttpResponse('The image is not existing.')
+    image_urls = [
+        'https://a.mapillary.com/v3/images/{}}/download_original?client_id={}'.format(image_key, settings.MAPILLARY_CLIENT_ID),
+    ]
+    headers = {"Authorization": "Bearer {}".format(request.user.mapillary_access_token)}
+    for image_url in image_urls:
+        # Steam the image from the url
+        request = requests.get(image_url, stream=True, headers=headers)
+
+        # Was the request OK?
+        if request.status_code != requests.codes.ok:
+            # Nope, error handling, skip file etc etc etc
+            continue
+
+        # Get the filename from the url, used for saving later
+        file_name = image_url.split('/')[-1]
+
+        # Create a temporary file
+        lf = tempfile.NamedTemporaryFile()
+
+        # Read the streamed image in sections
+        for block in request.iter_content(1024 * 8):
+
+            # If no more file then stop
+            if not block:
+                break
+
+            # Write image block to temporary file
+            lf.write(block)
+
+        # Create the model you want to save the image to
+        # image = Image()
+        image.image.save(file_name, files.File(lf))
+        # Save the temporary image to the model#
+        # This saves the model so be sure that is it valid
+        # image.image.save(file_name, files.File(lf))
 
 def import_sequence(request):
     map_user_data = check_mapillary_token(request.user)
@@ -862,6 +905,7 @@ def ajax_add_ele_in_image(request, unique_id, image_key):
         'status': 'success',
         'message': "success",
     })
+
 def ajax_get_image_list(request, unique_id):
     sequence = Sequence.objects.get(unique_id=unique_id)
     if not sequence:
@@ -1033,3 +1077,4 @@ def ajax_image_mark_view(request, unique_id, image_key):
             'is_marked': True,
             'view_points': view_points
         })
+

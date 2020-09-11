@@ -22,6 +22,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.template.loader import render_to_string
 from django.contrib.gis.geos import Point
 
+
 ## Custom Libs ##
 from lib.functions import *
 
@@ -193,6 +194,13 @@ def guidebook_detail(request, unique_id):
             is_liked = False
     else:
         is_liked = False
+
+
+
+
+
+
+
     form = SceneForm()
     poi_form = PointOfInterestForm()
     content = {

@@ -16,6 +16,10 @@ from mptt.models import MPTTModel, TreeForeignKey
 
 UserModel = get_user_model()
 
+def image_directory_path(instance):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    return 'sequences/{}/{}'.format(instance.seq_key, instance.image_key)
+
 def icon_image_directory_path(instance, filename):
     return 'media/sequence/transport_type/icons/{}'.format(str(instance.unique_id) + '-' + filename)
 class Icon(models.Model):
@@ -209,6 +213,7 @@ class Image(models.Model):
     ele = models.FloatField(default=0)
     point = models.PointField(null=True, blank=True)
     type = models.CharField(max_length=50, default='Point')
+    image = models.ImageField(upload_to=image_directory_path, null=True)
 
     def getSequence(self):
         if self.seq_key != '':

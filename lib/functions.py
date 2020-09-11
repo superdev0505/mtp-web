@@ -29,7 +29,6 @@ def my_login_required(function):
             return function(request, *args, **kw)
     return wrapper
 
-
 def get_mapillary_user(token):
     # omit the bbox if you want to retrieve all data your account can access, it will automatically limit to your subscription area
     url = 'https://a.mapillary.com/v3/me?client_id=' + settings.MAPILLARY_CLIENT_ID
@@ -46,6 +45,18 @@ def get_sequence_by_key(token, seq_key):
     response = requests.get(url, headers=headers)
     data = response.json()
     return data
+
+
+def download_image():
+    url = "https://a.mapillary.com/v3/images/MZh3en1mAgqKvLTEdQCDJM/download_original?client_id=b0h6cEJDV1FrWE5FUVZZZU5ybWNTcTo3MjNiMzY5YzRiMzhhZmFk"
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtcHkiLCJzdWIiOiJwRzZMNWRqNTdQQXV4YUVVVWdqOWhBIiwiYXVkIjoiYjBoNmNFSkRWMUZyV0U1RlVWWlpaVTV5YldOVGNUbzNNak5pTXpZNVl6UmlNemhoWm1GayIsImlhdCI6MTU5OTc2NjkyNDM3MywianRpIjoiNzc2NWMyYmUzYzI2ZTFhM2MxOWUyMWE1YTA4ZWQ0OWUiLCJzY28iOlsidXNlcjplbWFpbCIsInVzZXI6cmVhZCIsInVzZXI6d3JpdGUiLCJwdWJsaWM6d3JpdGUiLCJwdWJsaWM6dXBsb2FkIiwicHJpdmF0ZTpyZWFkIiwicHJpdmF0ZTp3cml0ZSIsInByaXZhdGU6dXBsb2FkIl0sInZlciI6MX0.IWWHppgsLv0NUYp9I74HrxHURtUDSKl3oyyP3J_nsS8"
+    headers = {"Authorization": "Bearer {}".format(token)}
+    print(url)
+    response = requests.get(url, headers=headers)
+    data = response.json()
+    print(data)
+    return data
+
 
 def distance(origin, destination):
     lon1, lat1 = origin
